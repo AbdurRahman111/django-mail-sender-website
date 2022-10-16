@@ -1,0 +1,54 @@
+{% extends 'dashboard/base.html' %}
+
+{% load static %}
+{% block title %}Dashboard - Home{% endblock %}
+{% block body %}
+<div class="container-xxl flex-grow-1 container-p-y">
+<!-- Hoverable Table rows -->
+  <div class="card">
+    <h5 class="card-header">Search Result : </h5>
+    <h6 style="margin-left:23px;">About {{ count_search_results }} result found !</h6>
+    <div class="table-responsive text-nowrap">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+
+          </tr>
+        </thead>
+        <tbody class="table-border-bottom-0">
+
+        {% include page_template %}
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <!--/ Hoverable Table rows -->
+</div>
+
+
+<script
+  src="https://code.jquery.com/jquery-3.4.1.min.js"
+  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+  crossorigin="anonymous"></script>
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+{{ block.super }}
+<script src="http://code.jquery.com/jquery-latest.js"></script>
+<script src="{% static 'el-pagination.js' %}"></script>
+<script>
+    $.endlessPaginate({
+        paginateOnScroll: true,
+        paginateOnScrollMargin: 800
+
+    });
+</script>
+
+
+
+{% endblock %}

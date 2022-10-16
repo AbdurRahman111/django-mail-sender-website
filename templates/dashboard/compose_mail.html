@@ -1,0 +1,402 @@
+{% extends 'dashboard/base.html' %}
+{% load crispy_forms_tags %}
+
+{% load static %}
+{% block title %}Dashboard - Home{% endblock %}
+{% block composeactive %}active{% endblock %}
+{% block body %}
+
+
+<!-- Content wrapper -->
+          <div class="content-wrapper">
+            <!-- Content -->
+
+            <div class="container-xxl flex-grow-1 container-p-y">
+                <div class="row">
+                <div class="col-xl">
+                  <div class="nav-align-top mb-4">
+                    <ul class="nav nav-tabs" role="tablist">
+                      <li class="nav-item">
+                        <button
+                          type="button"
+                          class="nav-link active"
+                          role="tab"
+                          data-bs-toggle="tab"
+                          data-bs-target="#navs-top-home"
+                          aria-controls="navs-top-home"
+                          aria-selected="true"
+                        >
+                          Single
+                        </button>
+                      </li>
+                      <li class="nav-item">
+                        <button
+                          type="button"
+                          class="nav-link"
+                          role="tab"
+                          data-bs-toggle="tab"
+                          data-bs-target="#navs-top-profile"
+                          aria-controls="navs-top-profile"
+                          aria-selected="false"
+                        >
+                          Bulk
+                        </button>
+                      </li>
+
+                    </ul>
+                    <div class="tab-content">
+                      <div class="tab-pane fade show active" id="navs-top-home" role="tabpanel">
+<!--                        <div class="col-xxl">-->
+<!--                          <div class="card mb-4">-->
+                            <div class="card-header d-flex align-items-center justify-content-between">
+                              <h5 class="mb-0">Compose Email</h5>
+                              <small class="text-muted float-end">New Message</small>
+                            </div>
+                            <div class="card-body">
+                              <form method="POST" action="{% url 'compose_single_email' %}" enctype="multipart/form-data">{% csrf_token %}
+                                <input type="hidden" value="{{user}}" name="user" />
+                                    <input type="hidden" value="{{company_id}}" name="company_id" />
+                                    <input type="hidden"  value="{{subscription_id}}" name="subscription_id"/>
+
+                                {{ form|crispy }}
+                                {{ form.media }}
+
+
+
+
+                                <div class="row mt-2">
+                                  <div class="col-sm-10">
+                                    <button type="submit" class="btn btn-primary">Send</button>
+                                  </div>
+                                </div>
+                              </form>
+                            </div>
+<!--                          </div>-->
+<!--                        </div>-->
+                      </div>
+
+
+                      <div class="tab-pane fade" id="navs-top-profile" role="tabpanel">
+<!--                        <div class="col-xxl">-->
+<!--                          <div class="card mb-4">-->
+                            <div class="card-header d-flex align-items-center justify-content-between">
+                              <h5 class="mb-0">Send Bulk Emails</h5>
+                              <small class="text-muted float-end">Message</small>
+                            </div>
+                            <div class="card-body">
+<!--                              <form>-->
+                                <label for="bulk_subject_id" class="form-label">Subject</label>
+                                <input
+                                  type="text"
+                                  class="form-control"
+                                  id="bulk_subject_id"
+                                  placeholder="Subject"
+                                />
+
+
+                                <div class="form-control mt-3 mb-3">
+                                  <textarea name="ckeditor_content" id="ckeditor_text"></textarea>
+                                </div>
+
+                                <div id="defaultFormControlHelp" class="form-text">
+                                  Only CSV File (1st Column for customer Email address and 2nd column is name of customer !)
+                                </div>
+
+                                <div class="input-group">
+
+                                  <label class="input-group-text" for="csv_file_id">Upload</label>
+                                  <input type="file" class="form-control" id="csv_file_id" accept=".csv" />
+                                    <input type="hidden" value="{{user}}" name="user" id="id_user" />
+                                    <input type="hidden" value="0" name="id_loop_num" id="id_loop_num" />
+                                    <input type="hidden" value="{{company_id}}" name="company_id" id="id_company_id" />
+                                    <input type="hidden"  value="{{subscription_id}}" name="subscription_id" id="id_subscription_id"/>
+<!--                                    <input type="file" class="form-control" accept=".csv" id="demoA"/>-->
+                                </div>
+
+                                <span class="mt-2" style="color:red" id="show_mes"></span>
+
+
+                                <div id="show_sending_info" class="mt-3"></div>
+                                <div id="show_progress_bar"></div>
+
+
+
+                                <div class="row mt-3">
+                                  <div class="col-sm-10" id="change_bulk_btn">
+                                    <button type="submit" onclick="final_func_start_sending_mail()" class="btn btn-primary">Start</button>
+                                  </div>
+                                </div>
+<!--                              </form>-->
+
+
+
+                            </div>
+<!--                          </div>-->
+<!--                        </div>-->
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              <!-- Tabs -->
+
+
+
+            </div>
+            <!-- / Content -->
+
+          </div>
+
+<script src="{% static 'ckeditor.js' %}"></script>
+<script>
+    CKEDITOR.replace('ckeditor_content');
+</script>
+
+
+<script>
+    function final_func_start_sending_mail(){
+
+        // (A) FILE PICKER
+        let file_input_var = document.getElementById("csv_file_id").value;
+        console.log(file_input_var);
+
+        if (file_input_var){
+            document.getElementById('show_mes').innerHTML = "";
+            console.log('asi');
+            document.getElementById('change_bulk_btn').innerHTML = `<button type="button" class="btn btn-warning">Processing Wait ...</button>`;
+
+            let picker = document.getElementById("csv_file_id");
+
+
+            // (B1) GET SELECTED CSV FILE
+            let selected = picker.files[0];
+
+            // (B2) READ CSV INTO ARRAY
+            let reader = new FileReader();
+            reader.addEventListener("loadend", () => {
+              // (B2-1) SPLIT ROWS & COLUMNS
+              let data = reader.result.split("\r\n");
+              for (let i in data) {
+                data[i] = data[i].split(",");
+              }
+
+              // (B2-2) DONE
+              // data = JSON.stringify(data);
+              // picker.value = "";
+
+
+              length_data = data.length
+
+              var newArray = new Array();
+              for (var i = 0; i < data.length; i++) {
+                if (data[i][0] != "" && data[i][0].search("@") !="-1") {
+                  newArray.push(data[i]);
+                }
+              }
+
+              let text = "Mr. has a blue hou@se";
+              let position = text.search("@");
+
+              console.log('newArray');
+              console.log(newArray);
+
+              //str_data = JSON.stringify(data)
+              //console.log(str_data.length);
+
+              var var_id_user = document.getElementById('id_user').value;
+              var var_id_company_id = document.getElementById('id_company_id').value;
+              var var_id_subscription_id = document.getElementById('id_subscription_id').value;
+
+              document.getElementById('show_sending_info').innerHTML = `<span style="margin-top:30px;">Total : ${newArray.length} <br>Sent : <span id="show_qty_sent_id">0</span><br>Draft : <span id="show_qty_draft_id">0</span><br>Bounced: <span id="show_qty_bounced_id">0</span></span>`;
+
+              document.getElementById('show_progress_bar').innerHTML = `
+                      <div class="small fw-semibold mt-4" style="color:#EEA525;" id="status_text_bar">Starting wait ...</div>
+                      <div class="demo-vertical-spacing demo-only-element">
+                        <div class="progress" id="show_progress_bar_after_sent">
+                          <div
+                            class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                            role="progressbar"
+                            style="width: 0%"
+                            aria-valuenow="0"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                          >0%</div>
+                        </div>
+                      </div>`;
+
+              var var_ckeditor_text = CKEDITOR.instances['ckeditor_text'].getData();
+              var var_bulk_subject_id = document.getElementById('bulk_subject_id').value;
+
+              func_ajax_sending(newArray, var_id_user, var_id_company_id, var_id_subscription_id, var_ckeditor_text, var_bulk_subject_id);
+
+
+
+            });
+            reader.readAsText(selected);
+        }
+        else{
+            console.log('nai');
+            document.getElementById('show_mes').innerHTML = `Select CSV file First !`;
+
+        }
+    }
+
+
+
+
+    function func_ajax_sending(newArray, var_id_user, var_id_company_id, var_id_subscription_id, var_ckeditor_text, var_bulk_subject_id){
+        var get_current_email_array_id = parseInt(document.getElementById('id_loop_num').value);
+
+        console.log('get_current_email_array_id');
+        console.log(get_current_email_array_id);
+
+        var var_to = newArray[get_current_email_array_id][0];
+        var var_customer_name = newArray[get_current_email_array_id][1];
+
+        console.log('var_to, var_customer_name');
+        console.log(var_to, var_customer_name);
+
+
+        $.ajax({
+            url : '{% url 'send_mail_save_data' %}',
+            type : 'POST',
+            data : {var_to:var_to, var_customer_name:var_customer_name, var_id_user:var_id_user, var_id_company_id:var_id_company_id, var_id_subscription_id:var_id_subscription_id, var_ckeditor_text:var_ckeditor_text, var_bulk_subject_id:var_bulk_subject_id},
+
+        })
+        .done(function(response){
+            console.log(response);
+            //var prod = JSON.parse(response);
+            //console.log(response);
+
+
+
+
+            if (response == "Draft"){
+                var my_drft_qty = document.getElementById('show_qty_draft_id').innerHTML;
+                document.getElementById('show_qty_draft_id').innerHTML = parseInt(my_drft_qty) + 1;
+            }
+            else if(response == "Send"){
+                var my_sent_qty = document.getElementById('show_qty_sent_id').innerHTML;
+                document.getElementById('show_qty_sent_id').innerHTML = parseInt(my_sent_qty) + 1;
+            }
+            else{
+
+                var my_bounced_qty = document.getElementById('show_qty_bounced_id').innerHTML;
+                document.getElementById('show_qty_bounced_id').innerHTML = parseInt(my_bounced_qty) + 1;
+            }
+
+
+            get_current_email_array_id = get_current_email_array_id + 1;
+            var var_total_qty = newArray.length
+
+            var percentage_progress_var = (get_current_email_array_id*100)/var_total_qty;
+            let percentage_progress_var_2 = percentage_progress_var.toFixed(2);
+
+
+            console.log('get_current_email_array_id');
+            console.log(get_current_email_array_id);
+
+            qty_count_curent_total2 = get_current_email_array_id - 1
+            document.getElementById('status_text_bar').innerHTML = `Sending To : ${newArray[qty_count_curent_total2][0]} ... Processing... Wait ...`;
+
+            document.getElementById('id_loop_num').value = get_current_email_array_id;
+
+            document.getElementById('show_progress_bar_after_sent').innerHTML = `<div
+                class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                role="progressbar"
+                style="width: ${percentage_progress_var_2}%"
+                aria-valuenow="${percentage_progress_var_2}"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >${percentage_progress_var_2}%</div>`
+
+            if (percentage_progress_var_2 == "100.00"){
+                document.getElementById('show_progress_bar_after_sent').innerHTML =
+                `<div
+                    class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                    role="progressbar"
+                    style="width: 100%"
+                    aria-valuenow="100"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  >100%</div>`
+
+                document.getElementById('change_bulk_btn').innerHTML = `<button type="submit" onclick="final_func_start_sending_mail()" class="btn btn-primary">Re-Start</button>`;
+
+
+              document.getElementById('status_text_bar').innerHTML = `<span style="color:green;">Finished Successfully !</span>`;
+            }
+
+            if (get_current_email_array_id == var_total_qty){}
+            else{
+                func_ajax_sending(newArray, var_id_user, var_id_company_id, var_id_subscription_id, var_ckeditor_text, var_bulk_subject_id)
+            }
+
+        });
+
+    }
+</script>
+
+<script>
+
+window.onload = () => {
+  // (A) FILE PICKER
+  let picker = document.getElementById("demoA");
+
+  // (B) READ CSV FILE
+  picker.onchange = () => {
+    // (B1) GET SELECTED CSV FILE
+    let selected = picker.files[0];
+
+    // (B2) READ CSV INTO ARRAY
+    let reader = new FileReader();
+    reader.addEventListener("loadend", () => {
+      // (B2-1) SPLIT ROWS & COLUMNS
+      let data = reader.result.split("\r\n");
+      for (let i in data) {
+        data[i] = data[i].split(",");
+      }
+
+      // (B2-2) DONE
+      // data = JSON.stringify(data);
+      // picker.value = "";
+
+
+      console.log(data);
+    });
+    reader.readAsText(selected);
+  };
+};
+</script>
+
+
+
+
+
+<script>
+  function func_start_sending_mail(){
+      var data = new FormData();
+      data.append("file_name_mails_csv", $("input[id^='csv_file_id']")[0].files[0]);
+      data.append("csrfmiddlewaretoken", "{{ csrf_token }}");
+      $.ajax({
+            url : '{% url 'passing_csv_file' %}',
+            type : 'POST',
+            data : data,
+            mimeType : "multipart/form-data",
+            processData: false,
+            contentType: false,
+        })
+        .done(function(response){
+            console.log(response);
+            var prod = JSON.parse(response);
+            console.log(prod);
+        });
+
+  }
+
+
+
+</script>
+{% endblock %}
