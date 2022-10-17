@@ -40,6 +40,16 @@
                 </button>
                 <div class="dropdown-menu">
 
+
+                    <a
+                      type="button"
+                      class="dropdown-item"
+                      data-bs-toggle="modal"
+                      data-bs-target="#basicModal_resend{{ mails.id }}"
+                    >
+                     <i class="menu-icon tf-icons bx bx-send"></i> Re-send
+                    </a>
+
                     <a
                       type="button"
                       class="dropdown-item"
@@ -62,6 +72,34 @@
           </tr>
 
         <!-- Modal -->
+        <!--        resend modal-->
+        <div class="modal fade" id="basicModal_resend{{ mails.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h3 class="modal-title" id="">Confirmation</h3>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body">
+                  <h5>Are you sure to Re-send this email ??</h5>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                  Close
+                </button>
+                <a href="{% url 'resend_mail' %}?mail_id={{ mails.id }}&user={{user}}&company_id={{company_id}}&subscription_id={{subscription_id}}" type="button" class="btn btn-success">Send</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+<!-- Modal -->
         <!--        delete modal-->
         <div class="modal fade" id="basicModal{{ mails.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog" role="document">

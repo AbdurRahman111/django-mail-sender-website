@@ -14,4 +14,5 @@ urlpatterns = [
     path('bounced_mails', views.bounced_mails, name="bounced_mails"),
     path('search_bar', views.search_bar, name="search_bar"),
     path('delete_mail', views.delete_mail, name="delete_mail"),
+    path('resend_mail', views.resend_mail, name="resend_mail"),
 ]

@@ -541,3 +541,81 @@ def delete_mail(request):
 
 
 
+
+def resend_mail(request):
+    print('resend')
+    mail_id = request.GET.get('mail_id')
+    company_id = request.GET.get('company_id')
+    subscription_id = request.GET.get('subscription_id')
+    user = request.GET.get('user')
+
+
+    if company_id[:10] == "encrypted-":
+        mail_id = decrypt(mail_id)
+        user = decrypt(user)
+        company_id = decrypt(company_id)
+        subscription_id = decrypt(subscription_id)
+    else:
+        mail_id = encrypt(mail_id)
+        user = encrypt(user)
+        company_id = encrypt(company_id)
+        subscription_id = encrypt(subscription_id)
+        return redirect(f'/dashboard/resend_mail?mail_id={mail_id}&user={user}&company_id={company_id}&subscription_id={subscription_id}')
+
+    if company_subscription_admin.objects.filter(User_id=user, company_id=company_id, subscription_id=subscription_id):
+
+
+        get_target_mail = Company_Emails.objects.get(id=mail_id, user_id=user, company_id=company_id, subscription_id=subscription_id)
+        print(get_target_mail)
+
+
+
+        new_mail = Company_Emails(user_id=user, company_id=company_id, subscription_id=subscription_id, From=settings.EMAIL_HOST_USER,To=get_target_mail.To, Subject=get_target_mail.Subject, Textbox=get_target_mail.Textbox, Status="Send")
+        new_mail.save()
+
+        if get_target_mail.Status == "Draft":
+            get_target_mail.delete()
+
+        body_content = new_mail.Textbox
+
+        var_track_mail_open = track_mail_open(email=new_mail)
+        var_track_mail_open.save()
+
+        site = get_current_site(request)
+        domain = site.domain
+        # print(domain)
+
+        email_body = render_to_string('email_template/mail_body.html',
+                                      {'body_content': body_content, 'var_track_mail_open': var_track_mail_open,
+                                       'domain': domain})
+        mail_body_final = html.unescape(email_body)
+
+        try:
+            send_mail(
+                new_mail.Subject,
+                '',
+                settings.EMAIL_HOST_USER,
+                [new_mail.To],
+                html_message=mail_body_final,
+                fail_silently=False,
+            )
+            messages.success(request, "Successfully Send The Mail!")
+
+            print('lol')
+        except:
+
+            new_mail.Status = "Bounced"
+            new_mail.save()
+            messages.success(request, "Email is Bounced")
+
+
+        last_url = request.META.get('HTTP_REFERER')
+        print(last_url[22:])
+
+
+        return redirect(last_url[21:])
+        # return render(request, 'error_pages/error.html')
+    else:
+        return render(request, 'error_pages/error.html')
+
+
